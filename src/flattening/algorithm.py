@@ -5,14 +5,9 @@ from pathlib import Path
 
 def _interpolate(projections: np.ndarray, normalized_angles: np.ndarray) -> np.ndarray:
     # Find library
-    _here = Path(__file__).resolve().parent
-    for so in _here.glob("myclib*.so"):
-        _libpath = so
-        break
-    else:
-        raise ImportError("Compiled shared library not found!")
+    lib_path = Path(__file__).resolve().parent / "c_library/libinterp.so"
 
-    lib = ctypes.CDLL(_libpath)
+    lib = ctypes.CDLL(lib_path)
 
     # Define C function signature
     lib.interp_loop.argtypes = [
