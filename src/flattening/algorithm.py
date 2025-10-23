@@ -1,10 +1,18 @@
 import ctypes
 import numpy as np
+from pathlib import Path
 
 
 def _interpolate(projections: np.ndarray, normalized_angles: np.ndarray) -> np.ndarray:
-    # Load the shared library
-    lib = ctypes.CDLL("./c_library/lib_interpolate.so")
+    # Find library
+    _here = Path(__file__).resolve().parent
+    for so in _here.glob("myclib*.so"):
+        _libpath = so
+        break
+    else:
+        raise ImportError("Compiled shared library not found!")
+
+    lib = ctypes.CDLL(_libpath)
 
     # Define C function signature
     lib.interp_loop.argtypes = [
