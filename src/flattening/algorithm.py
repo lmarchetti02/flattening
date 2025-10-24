@@ -10,7 +10,6 @@ def _load_library() -> ctypes.CDLL:
         ctypes.CDLL: The shared library.
     """
     lib_path = next(Path(__file__).parent.glob("interpolate*.so"))
-    print(lib_path)
     return ctypes.CDLL(lib_path)
 
 
