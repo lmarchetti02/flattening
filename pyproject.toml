@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "flattening"
-version = "2025.10.23"
+version = "0.1"
 dependencies = ["numpy"]
 requires-python = ">=3.8"
 authors = [{ name = "Luca Marchetti", email = "luca.marchetti@tum.de" }]

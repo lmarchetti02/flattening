@@ -1,7 +1,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <omp.h>
-#include <stdbool.h>
 
 // Interpolation kernel with OpenMP parallelization
 void interp_loop(

@@ -3,11 +3,14 @@ import numpy as np
 from pathlib import Path
 
 
-def _interpolate(projections: np.ndarray, normalized_angles: np.ndarray) -> np.ndarray:
-    # Find library
-    lib_path = Path(__file__).resolve().parent / "c_library/libinterp.so"
+def _load_library():
+    lib_path = next(Path(__file__).parent.glob("interpolate*.so"))
+    print(lib_path)
+    return ctypes.CDLL(lib_path)
 
-    lib = ctypes.CDLL(lib_path)
+
+def _interpolate(projections: np.ndarray, normalized_angles: np.ndarray) -> np.ndarray:
+    lib = _load_library()
 
     # Define C function signature
     lib.interp_loop.argtypes = [
