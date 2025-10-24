@@ -2,19 +2,29 @@
 #include <stdlib.h>
 #include <omp.h>
 
-// Interpolation kernel with OpenMP parallelization
-void interp_loop(
-    const float *proj,               // input [num_angles, num_rows, orig_num_detectors]
+/**
+ * Efficiently performs the interpolation loop. (See Python functions.)
+ *
+ * @param proj The pointer to the array of curved projections.
+ * @param normalized_angles The pointer to the array of angles.
+ * @param out The pointer to the array of flat projections.
+ * @param num_proj The number of projections.
+ * @param num_rows The number of detector rows.
+ * @param orig_num_detectors The number of (curved) detector columns.
+ * @param num_cols The number of (flat) detector columns(> curved).
+ */
+void interpolation_loop(
+    const float *proj,               // input [num_proj, num_rows, orig_num_detectors]
     const double *normalized_angles, // input [num_cols]
-    float *out,                      // output [num_angles, num_rows, num_cols]
-    int num_angles,
+    float *out,                      // output [num_proj, num_rows, num_cols]
+    int num_proj,
     int num_rows,
     int orig_num_detectors,
     int num_cols)
 {
 // Parallelize outer loops over i and r
 #pragma omp parallel for collapse(2) schedule(static)
-    for (int i = 0; i < num_angles; i++)
+    for (int i = 0; i < num_proj; i++)
     {
         for (int r = 0; r < num_rows; r++)
         {
