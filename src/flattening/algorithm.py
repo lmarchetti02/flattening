@@ -13,20 +13,18 @@ def _load_library() -> ctypes.CDLL:
     return ctypes.CDLL(lib_path)
 
 
-def _interpolate(projections: np.ndarray, normalized_angles: np.ndarray) -> np.ndarray:
+def _interpolate(projections: np.ndarray, normalized_angles: np.ndarray, batch_size: int = 100) -> np.ndarray:
     """Performs the linear interpolation necessary to map the pixel values
     on the virtual flat detector.
-
     Args:
         projections (np.ndarray[ndim=3]): A set of 2D projections.
         normalized_angles (np.ndarray[ndim=1]): The angles corresponding to the
             columns of the curved detector.
-
+        batch_size (int): Number of projections to process at once. Defaults to 100.
     Returns:
         np.ndarray[ndim=3]: The set of flattened projections.
     """
     lib = _load_library()
-
     # Define C function signature
     lib.interpolation_loop.argtypes = [
         ctypes.POINTER(ctypes.c_float),  # proj
@@ -38,28 +36,36 @@ def _interpolate(projections: np.ndarray, normalized_angles: np.ndarray) -> np.n
         ctypes.c_int,  # num_cols
     ]
     lib.interpolation_loop.restype = None  # void function
+    
     num_proj, num_rows, orig_num_detectors = projections.shape
     num_cols = len(normalized_angles)
-
+    
     out = np.zeros((num_proj, num_rows, num_cols), dtype=np.float32)
-
-    # convert to C-ordered arrays (flatten)
-    proj_c = np.ascontiguousarray(projections, dtype=np.float32)
     ang_c = np.ascontiguousarray(normalized_angles, dtype=np.float64)
-    out_c = np.ascontiguousarray(out, dtype=np.float32)
-
-    # run C function
-    lib.interpolation_loop(
-        proj_c.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-        ang_c.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        out_c.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-        ctypes.c_int(num_proj),
-        ctypes.c_int(num_rows),
-        ctypes.c_int(orig_num_detectors),
-        ctypes.c_int(num_cols),
-    )
-
-    return out_c
+    
+    # Process in batches
+    for start_idx in range(0, num_proj, batch_size):
+        end_idx = min(start_idx + batch_size, num_proj)
+        
+        # Convert batch to C-ordered arrays
+        proj_c = np.ascontiguousarray(projections[start_idx:end_idx], dtype=np.float32)
+        out_c = np.ascontiguousarray(out[start_idx:end_idx], dtype=np.float32)
+        
+        # Run C function on batch
+        lib.interpolation_loop(
+            proj_c.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            ang_c.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+            out_c.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            ctypes.c_int(end_idx - start_idx),
+            ctypes.c_int(num_rows),
+            ctypes.c_int(orig_num_detectors),
+            ctypes.c_int(num_cols),
+        )
+        
+        # Copy results back to output array
+        out[start_idx:end_idx] = out_c
+    
+    return out
 
 
 def flatten_detector(
